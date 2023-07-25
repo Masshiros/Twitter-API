@@ -5,6 +5,8 @@ import databaseService from '~/services/database.services'
 import { hashPassword } from '~/utils/crypto'
 import { signToken } from '~/utils/jwt'
 import { config } from 'dotenv'
+import RefreshToken from '~/models/schemas/RefreshToken.schemas'
+import { ObjectId } from 'mongodb'
 config()
 class UserService {
   // access_token
@@ -48,7 +50,13 @@ class UserService {
     const user_id = result.insertedId.toString()
     // get tokens
     const [access_token, refresh_token] = await this.signAccessAndRefreshToken(user_id)
-
+    // save refresh token
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({
+        user_id: new ObjectId(user_id),
+        token: refresh_token
+      })
+    )
     return {
       access_token,
       refresh_token
@@ -72,7 +80,13 @@ class UserService {
   // login
   async login(user_id: string) {
     const [access_token, refresh_token] = await this.signAccessAndRefreshToken(user_id)
-
+    // save refresh token
+    await databaseService.refreshTokens.insertOne(
+      new RefreshToken({
+        user_id: new ObjectId(user_id),
+        token: refresh_token
+      })
+    )
     return {
       access_token,
       refresh_token
