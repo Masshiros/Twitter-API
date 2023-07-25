@@ -3,8 +3,14 @@ import { loginController, registerController } from '~/controllers/users.control
 import { loginValidator, registerValidator } from '~/middlewares/users.middlewares'
 import { wrapRequestHandler } from '~/utils/handlers'
 const usersRouter = Router()
-
-usersRouter.post('/login', loginValidator, loginController)
+/**
+ * DESC    Login
+ * Path:   /login
+ * Method  POST
+ * Body:   { email: string, password: string}
+ * Access  None
+ */
+usersRouter.post('/login', loginValidator, wrapRequestHandler(loginController))
 
 /**
  * DESC    Register a new user
