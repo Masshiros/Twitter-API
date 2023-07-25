@@ -61,6 +61,14 @@ class UserService {
     })
     return Boolean(result)
   }
+  // check user exist
+  async checkUserExist(email: string, password: string) {
+    const user = await databaseService.users.findOne({
+      email: email,
+      password: hashPassword(password)
+    })
+    return user
+  }
   // login
   async login(user_id: string) {
     const [access_token, refresh_token] = await this.signAccessAndRefreshToken(user_id)
