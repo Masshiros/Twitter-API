@@ -174,14 +174,11 @@ export const accessTokenValidator = validate(
   checkSchema(
     {
       Authorization: {
-        notEmpty: {
-          errorMessage: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
-        },
         custom: {
           options: async (value: string, { req }) => {
             // get token
-            const access_token = value.split(' ')[1]
-            // check token exist
+            const access_token = (value || '').split(' ')[1]
+            // check token exist in header
             if (!access_token) {
               throw new ErrorWithStatus({
                 message: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED,
@@ -190,7 +187,10 @@ export const accessTokenValidator = validate(
             }
             // verify token and decode
             try {
-              const decoded_authorization = await verifyToken({ token: access_token })
+              const decoded_authorization = await verifyToken({
+                token: access_token,
+                privateKey: process.env.JWT_SECRET_ACCESS_TOKEN as string
+              })
               ;(req as Request).decoded_authorization = decoded_authorization
             } catch (error) {
               throw new ErrorWithStatus({
@@ -211,14 +211,20 @@ export const refreshTokenValidator = validate(
   checkSchema(
     {
       refresh_token: {
-        // check body contains token
-        notEmpty: { errorMessage: USERS_MESSAGES.REFRESH_TOKEN_IS_REQUIRED },
+        trim: true,
         custom: {
           options: async (value: string, { req }) => {
+            // check body has token
+            if (!value) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGES.REFRESH_TOKEN_IS_INVALID,
+                status: HTTP_STATUS.UNAUTHORIZED
+              })
+            }
             try {
               // decode the token and check token exist in db
               const [decoded_refresh_token, refresh_token] = await Promise.all([
-                verifyToken({ token: value }),
+                verifyToken({ token: value, privateKey: process.env.JWT_SECRET_REFRESH_TOKEN as string }),
                 databaseService.refreshTokens.findOne({ token: value })
               ])
               // if refresh token is not exist in db
@@ -238,6 +244,35 @@ export const refreshTokenValidator = validate(
               }
               throw error
             }
+            return true
+          }
+        }
+      }
+    },
+    ['body']
+  )
+)
+export const emailVerifyTokenValidator = validate(
+  checkSchema(
+    {
+      email_verify_token: {
+        trim: true,
+        custom: {
+          options: async (value: string, { req }) => {
+            // check body contains token
+            if (!value) {
+              throw new ErrorWithStatus({
+                message: USERS_MESSAGES.EMAIL_VERIFY_TOKEN_IS_REQUIRED,
+                status: HTTP_STATUS.UNAUTHORIZED
+              })
+            }
+            // decode the token
+            const decoded_email_verify_token = await verifyToken({
+              token: value,
+              privateKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string
+            })
+            ;(req as Request).decoded_email_verify_token = decoded_email_verify_token
+
             return true
           }
         }
