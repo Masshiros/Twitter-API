@@ -11,7 +11,8 @@ import {
   LogoutReqBody,
   RegisterReqBody,
   TokenPayload,
-  VerifyEmailReqBody
+  VerifyEmailReqBody,
+  VerifyForgotPasswordReqBody
 } from '~/models/requests/User.requests'
 import User from '~/models/schemas/User.schema'
 import databaseService from '~/services/database.services'
@@ -94,4 +95,18 @@ export const forgotPasswordController = async (
   const { _id } = req.user as User
   const result = await userService.forgotPassword((_id as ObjectId).toString())
   return res.json(result)
+}
+export const verifyForgotPasswordController = async (
+  req: Request<ParamsDictionary, any, VerifyForgotPasswordReqBody>,
+  res: Response
+) => {
+  // after user click on address sent in their email ,
+  // we will not delete forgot_password_token in users collection
+  // because in the scenario when user click on the link success,
+  // and they will change password but after a long time, they will click on
+  // the link in email again. So if we delete forgot_password_token
+  //, it will throw error
+  return res.json({
+    message: USERS_MESSAGES.VERIFY_FORGOT_PASSWORD_SUCCESS
+  })
 }
