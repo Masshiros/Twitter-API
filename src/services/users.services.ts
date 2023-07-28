@@ -8,6 +8,7 @@ import { config } from 'dotenv'
 import RefreshToken from '~/models/schemas/RefreshToken.schemas'
 import { ObjectId } from 'mongodb'
 import { USERS_MESSAGES } from '~/constants/messages'
+import { log } from 'console'
 config()
 class UserService {
   // access_token
@@ -41,11 +42,24 @@ class UserService {
     return signToken({
       payload: {
         user_id,
-        token_type: tokenType.RefreshToken
+        token_type: tokenType.EmailVerifyToken
       },
       privateKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string,
       options: {
         expiresIn: process.env.EMAIL_VERIFY_TOKEN_EXPIRE_IN
+      }
+    })
+  }
+  // forgot_password_token
+  private signForgotPasswordToken(user_id: string) {
+    return signToken({
+      payload: {
+        user_id,
+        token_type: tokenType.ResetPasswordToken
+      },
+      privateKey: process.env.JWT_SECRET_FORGOT_PASSWORD_TOKEN as string,
+      options: {
+        expiresIn: process.env.FORGOT_PASSWORD_TOKEN_EXPIRE_IN
       }
     })
   }
@@ -90,10 +104,16 @@ class UserService {
     return Boolean(result)
   }
   // check user exist
-  async checkUserExist(email: string, password: string) {
+  async checkUserExist(email: string, password?: string) {
+    if (password) {
+      const user = await databaseService.users.findOne({
+        email: email,
+        password: hashPassword(password as string)
+      })
+      return user
+    }
     const user = await databaseService.users.findOne({
-      email: email,
-      password: hashPassword(password)
+      email
     })
     return user
   }
@@ -159,6 +179,24 @@ class UserService {
     )
     return {
       message: USERS_MESSAGES.RESEND_VERIFY_EMAIL_SUCCESS
+    }
+  }
+  // forgot password
+  async forgotPassword(user_id: string) {
+    const forgot_password_token = await this.signForgotPasswordToken(user_id)
+    await databaseService.users.updateOne(
+      { _id: new ObjectId(user_id) },
+      {
+        $set: {
+          forgot_password_token: forgot_password_token
+        },
+        $currentDate: { updated_at: true }
+      }
+    )
+    // send email with link : {{host}}/forgot-password?token=token
+    console.log('forgot_password_token', forgot_password_token)
+    return {
+      message: USERS_MESSAGES.CHECK_EMAIL_TO_RESET_PASSWORD
     }
   }
 }

@@ -19,6 +19,9 @@ export interface LogoutReqBody {
 export interface VerifyEmailReqBody {
   email_verify_token: string
 }
+export interface ForgotPasswordReqBody {
+  email: string
+}
 // manage token payload
 export interface TokenPayload extends JwtPayload {
   user_id: string

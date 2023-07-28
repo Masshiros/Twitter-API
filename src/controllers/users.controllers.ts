@@ -6,6 +6,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import { USERS_MESSAGES } from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import {
+  ForgotPasswordReqBody,
   LoginReqBody,
   LogoutReqBody,
   RegisterReqBody,
@@ -69,10 +70,7 @@ export const verifyEmailController = async (req: Request<ParamsDictionary, any, 
     result
   })
 }
-export const resendVerifyEmailController = async (
-  req: Request<ParamsDictionary, any, LogoutReqBody>,
-  res: Response
-) => {
+export const resendVerifyEmailController = async (req: Request, res: Response) => {
   const { user_id } = req.decoded_authorization as TokenPayload
   const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
   if (!user) {
@@ -88,4 +86,12 @@ export const resendVerifyEmailController = async (
   }
   const result = await userService.resendVerifyEmail(user_id)
   res.json(result)
+}
+export const forgotPasswordController = async (
+  req: Request<ParamsDictionary, any, ForgotPasswordReqBody>,
+  res: Response
+) => {
+  const { _id } = req.user as User
+  const result = await userService.forgotPassword((_id as ObjectId).toString())
+  return res.json(result)
 }
