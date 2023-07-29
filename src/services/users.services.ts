@@ -9,6 +9,8 @@ import RefreshToken from '~/models/schemas/RefreshToken.schemas'
 import { ObjectId } from 'mongodb'
 import { USERS_MESSAGES } from '~/constants/messages'
 import { log } from 'console'
+import { ErrorWithStatus } from '~/models/Errors'
+import HTTP_STATUS from '~/constants/httpStatus'
 config()
 class UserService {
   // access_token
@@ -220,6 +222,20 @@ class UserService {
     return {
       message: USERS_MESSAGES.RESET_PASSWORD_SUCCESS
     }
+  }
+  // get me
+  async getMe(user_id: string) {
+    const user = await databaseService.users.findOne(
+      { _id: new ObjectId(user_id) },
+      { projection: { password: 0, email_verify_token: 0, forgot_password_token: 0 } }
+    )
+    if (!user) {
+      throw new ErrorWithStatus({
+        message: USERS_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+    return user
   }
 }
 const userService = new UserService()
