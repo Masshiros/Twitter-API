@@ -14,7 +14,7 @@ export const validate = (validation: RunnableValidationChains<ValidationChain>) 
     if (errors.isEmpty()) {
       return next()
     }
-    // list the errors by array
+    // list the errors by object
     const errorObjects = errors.mapped()
 
     // list of validation errors
