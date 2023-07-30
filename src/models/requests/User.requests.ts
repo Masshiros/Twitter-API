@@ -41,14 +41,19 @@ export interface UpdateMeReqBody {
   avatar?: string
   cover_photo?: string
 }
-export interface GetProfileReqParams {
-  username: string
-}
 export interface FollowReqBody {
   followed_user_id: string
 }
+export interface ChangePasswordReqBody {
+  old_password: string
+  password: string
+  confirm_password: string
+}
 export interface UnfollowReqParams extends ParamsDictionary {
   user_id: string
+}
+export interface GetProfileReqParams {
+  username: string
 }
 // manage token payload
 export interface TokenPayload extends JwtPayload {

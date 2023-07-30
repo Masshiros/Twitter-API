@@ -17,6 +17,7 @@ import {
 import { filterMiddleware } from '~/middlewares/common.middlewares'
 import {
   accessTokenValidator,
+  changePasswordValidator,
   emailVerifyTokenValidator,
   followValidator,
   forgotPasswordValidator,
@@ -173,6 +174,21 @@ usersRouter.delete(
   accessTokenValidator,
   verifiedUserValidator,
   unfollowValidator,
+  wrapRequestHandler(unfollowController)
+)
+
+/**
+ * DESC    Change password
+ * Path:   /change-password
+ * Method  PUT
+ * Header  {Authorization: Bearer <access_token>}
+ * Access  Login + Verified
+ */
+usersRouter.delete(
+  '/change-password',
+  accessTokenValidator,
+  verifiedUserValidator,
+  changePasswordValidator,
   wrapRequestHandler(unfollowController)
 )
 

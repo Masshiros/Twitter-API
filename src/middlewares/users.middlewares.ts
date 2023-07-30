@@ -12,6 +12,8 @@ import { capitalize } from 'lodash'
 import { ObjectId } from 'mongodb'
 import { TokenPayload } from '~/models/requests/User.requests'
 import { UserVerifyStatus } from '~/constants/enums'
+import { REGEX_USERNAME } from '~/constants/regex'
+import { hashPassword } from '~/utils/crypto'
 
 const passwordSchema: ParamSchema = {
   notEmpty: {
@@ -499,12 +501,20 @@ export const updateMeValidator = validate(
         },
         trim: true,
 
-        isLength: {
-          options: {
-            min: 4,
-            max: 15
-          },
-          errorMessage: USERS_MESSAGES.USERNAME_INVALID
+        custom: {
+          options: async (value: string, { req }) => {
+            if (!REGEX_USERNAME.test(value)) {
+              throw Error(USERS_MESSAGES.USERNAME_INVALID)
+            }
+            // unique username
+            const user = await databaseService.users.findOne({
+              username: value
+            })
+            if (user) {
+              throw Error(USERS_MESSAGES.USERNAME_EXISTED)
+            }
+            return true
+          }
         }
       },
       avatar: imageSchema,
@@ -522,3 +532,39 @@ export const followValidator = validate(
   )
 )
 export const unfollowValidator = validate(checkSchema({ user_id: userIdSchema }, ['params']))
+export const changePasswordValidator = validate(
+  checkSchema(
+    {
+      old_password: {
+        ...passwordSchema,
+        custom: {
+          options: async (value: string, { req }) => {
+            {
+              const { user_id } = req.decoded_authorization as TokenPayload
+              const user = await databaseService.users.findOne({
+                _id: new ObjectId(user_id)
+              })
+              if (!user) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.USER_NOT_FOUND,
+                  status: HTTP_STATUS.UNAUTHORIZED
+                })
+              }
+              const isMatch = hashPassword(value) === user.password
+              if (!isMatch) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.OLD_PASSWORD_NOT_MATCH,
+                  status: HTTP_STATUS.UNAUTHORIZED
+                })
+              }
+              return true
+            }
+          }
+        }
+      },
+      password: passwordSchema,
+      confirm_password: confirmPasswordSchema
+    },
+    ['body']
+  )
+)
