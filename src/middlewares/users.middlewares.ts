@@ -158,6 +158,29 @@ const imageSchema: ParamSchema = {
     errorMessage: USERS_MESSAGES.IMAGE_URL_LENGTH
   }
 }
+const userIdSchema: ParamSchema = {
+  custom: {
+    options: async (value: string, { req }) => {
+      // check id is valid or not
+      if (!ObjectId.isValid(value)) {
+        throw new ErrorWithStatus({
+          message: USERS_MESSAGES.INVALID_USER_ID,
+          status: HTTP_STATUS.NOT_FOUND
+        })
+      }
+      // check if the followee is existed
+      const followed_user = await databaseService.users.findOne({
+        _id: new ObjectId(value)
+      })
+      if (followed_user === null) {
+        throw new ErrorWithStatus({
+          message: USERS_MESSAGES.USER_NOT_FOUND,
+          status: HTTP_STATUS.NOT_FOUND
+        })
+      }
+    }
+  }
+}
 export const loginValidator = validate(
   checkSchema(
     {
@@ -336,12 +359,19 @@ export const emailVerifyTokenValidator = validate(
               })
             }
             // decode the token
-            const decoded_email_verify_token = await verifyToken({
-              token: value,
-              privateKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string
-            })
-            ;(req as Request).decoded_email_verify_token = decoded_email_verify_token
+            try {
+              const decoded_email_verify_token = await verifyToken({
+                token: value,
+                privateKey: process.env.JWT_SECRET_EMAIL_VERIFY_TOKEN as string
+              })
 
+              ;(req as Request).decoded_email_verify_token = decoded_email_verify_token
+            } catch (error) {
+              throw new ErrorWithStatus({
+                message: capitalize((error as JsonWebTokenError).message),
+                status: HTTP_STATUS.UNAUTHORIZED
+              })
+            }
             return true
           }
         }
@@ -483,3 +513,12 @@ export const updateMeValidator = validate(
     ['body']
   )
 )
+export const followValidator = validate(
+  checkSchema(
+    {
+      followed_user_id: userIdSchema
+    },
+    ['body']
+  )
+)
+export const unfollowValidator = validate(checkSchema({ user_id: userIdSchema }, ['params']))
